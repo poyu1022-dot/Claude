@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會議記錄產生器 Meeting Minutes Generator</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark">📝</span>
+      <div class="brand-text">
+        <h1>會議記錄產生器 <span class="en">Meeting Minutes Generator</span></h1>
+        <p class="subtitle">點選欄位、選擇選項，快速產生英文 / 繁體中文版會議記錄 PDF</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-clear" class="btn btn-ghost" title="清除所有欄位並重新開始">🗑️ 清除表單</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <form id="minutes-form" class="form-panel" autocomplete="off">
+
+      <!-- 1. Meeting Date -->
+      <section class="card">
+        <h2><span class="step">1</span>會議日期 <span class="en">Meeting Date</span></h2>
+        <div class="field">
+          <label for="meeting-date">日期（西元年月日）<span class="en">Date (Gregorian)</span></label>
+          <input type="date" id="meeting-date" required>
+        </div>
+      </section>
+
+      <!-- 2. Meeting Subject -->
+      <section class="card">
+        <h2><span class="step">2</span>會議主旨 <span class="en">Meeting Subject</span></h2>
+        <div class="field">
+          <label for="meeting-subject">請輸入本次會議主旨 <span class="en">Enter the subject/purpose of this meeting</span></label>
+          <input type="text" id="meeting-subject" placeholder="例：Q3 專案進度review會議" required>
+        </div>
+      </section>
+
+      <!-- 3. Attendees -->
+      <section class="card">
+        <h2><span class="step">3</span>與會人員 <span class="en">Attendees</span></h2>
+        <p class="hint">選擇職務類別，並輸入姓名。可新增多位與會人員。</p>
+        <div id="attendee-list" class="repeat-list"></div>
+        <button type="button" id="btn-add-attendee" class="btn btn-add">＋ 新增與會人員 Add Attendee</button>
+      </section>
+
+      <!-- 4. Meeting Content -->
+      <section class="card">
+        <h2><span class="step">4</span>會議內容 <span class="en">Meeting Content</span></h2>
+        <p class="hint">以條列方式輸入討論重點，每項一行，可新增多項。</p>
+        <div id="content-list" class="repeat-list"></div>
+        <button type="button" id="btn-add-content" class="btn btn-add">＋ 新增項目 Add Item</button>
+      </section>
+
+      <!-- 5. Action Items / To-do -->
+      <section class="card">
+        <h2><span class="step">5</span>待辦事項 <span class="en">Action Items / To-do</span></h2>
+        <p class="hint">輸入待辦事項內容，並可從與會人員中選擇負責人與期限（選填）。</p>
+        <div id="todo-list" class="repeat-list"></div>
+        <button type="button" id="btn-add-todo" class="btn btn-add">＋ 新增待辦事項 Add Action Item</button>
+      </section>
+
+      <!-- 6. Additional Notes -->
+      <section class="card">
+        <h2><span class="step">6</span>其他補充項目 <span class="en">Additional Notes</span></h2>
+        <div class="field">
+          <label for="notes">其他補充說明（選填）<span class="en">Any other remarks (optional)</span></label>
+          <textarea id="notes" rows="4" placeholder="其他需要補充的資訊..."></textarea>
+        </div>
+      </section>
+
+    </form>
+
+    <aside class="preview-panel">
+      <div class="preview-sticky">
+        <h2>預覽 <span class="en">Preview</span></h2>
+        <div id="preview-box" class="preview-box">
+          <p class="preview-empty">開始填寫左側表單，這裡會即時顯示會議記錄內容。</p>
+        </div>
+
+        <div class="generate-box">
+          <h3>產生 PDF <span class="en">Generate PDF</span></h3>
+          <div class="generate-buttons">
+            <button type="button" id="btn-gen-en" class="btn btn-primary">🇬🇧 產生英文版 PDF<br><small>Generate English PDF</small></button>
+            <button type="button" id="btn-gen-zh" class="btn btn-primary">🇹🇼 產生繁體中文版 PDF<br><small>Generate Traditional Chinese PDF</small></button>
+          </div>
+          <p id="gen-status" class="gen-status"></p>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>所有資料僅儲存在您的瀏覽器（localStorage），不會上傳至任何伺服器。 All data stays in your browser only — nothing is uploaded to any server.</p>
+  </footer>
+</div>
+
+<!-- Offscreen container used to render the PDF page before export -->
+<div id="pdf-render-root" aria-hidden="true"></div>
+
+<script src="vendor/html2pdf.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
