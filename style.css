@@ -157,8 +157,17 @@ textarea { resize: vertical; }
 }
 
 .attendee-row { grid-template-columns: 0.9fr 1fr 1fr auto; }
-.content-row { grid-template-columns: 1fr auto; }
+.content-row { grid-template-columns: 1fr auto; align-items: start; }
 .todo-row { grid-template-columns: 1.6fr 1fr 0.9fr auto; }
+
+.content-text {
+  resize: none;
+  overflow: hidden;
+  line-height: 1.5;
+  min-height: 38px;
+  font-family: inherit;
+}
+.content-row .row-remove { margin-top: 2px; }
 
 @media (max-width: 620px) {
   .attendee-row, .todo-row { grid-template-columns: 1fr; }
@@ -286,6 +295,7 @@ textarea { resize: vertical; }
 }
 .preview-box h4:first-child { margin-top: 0; }
 .preview-box p, .preview-box ul { margin: 0 0 6px; padding-left: 18px; }
+.preview-box ul li { white-space: pre-line; }
 .preview-box .pv-title { font-size: 14px; font-weight: 700; color: var(--color-text); padding-left: 0; }
 .preview-box .pv-chip {
   display: inline-block;
@@ -377,7 +387,7 @@ textarea { resize: vertical; }
 .pdf-attendee-table th { color: #4a5266; font-weight: 700; background: #f7f9fc; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
 
 .pdf-bullet-list { margin: 0; padding-left: 20px; font-size: 13px; }
-.pdf-bullet-list li { margin-bottom: 6px; }
+.pdf-bullet-list li { margin-bottom: 6px; white-space: pre-line; }
 
 .pdf-todo-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .pdf-todo-table th, .pdf-todo-table td {

@@ -9,12 +9,12 @@
     { value: 'manager', en: 'Manager', zh: '經理' },
     { value: 'pm', en: 'Project Manager', zh: '專案經理' },
     { value: 'sales', en: 'Sales', zh: '業務' },
+    { value: 'sales_manager', en: 'Sales Manager', zh: '業務經理' },
     { value: 'sw', en: 'SW Engineer', zh: '軟體工程師' },
     { value: 'hw', en: 'HW Engineer', zh: '硬體工程師' },
     { value: 'fpga', en: 'FPGA Engineer', zh: 'FPGA工程師' },
-    { value: 'mech', en: 'Mechanical Engineer', zh: '機構工程師' },
-    { value: 'qa', en: 'QA Engineer', zh: '品保工程師' },
-    { value: 'marketing', en: 'Marketing', zh: '行銷' },
+    { value: 'fae', en: 'FAE', zh: '現場應用工程師' },
+    { value: 'avnet_dst', en: 'Avnet Design Service Team', zh: 'Avnet Design Service Team' },
     { value: 'customer', en: 'Customer', zh: '客戶' },
     { value: 'other', en: 'Other', zh: '其他' },
   ];
@@ -108,7 +108,7 @@
     ROLES.forEach((r) => {
       const opt = document.createElement('option');
       opt.value = r.value;
-      opt.textContent = `${r.en} ${r.zh}`;
+      opt.textContent = r.en === r.zh ? r.en : `${r.en} ${r.zh}`;
       if (r.value === selectedValue) opt.selected = true;
       select.appendChild(opt);
     });
@@ -157,16 +157,21 @@
     companyInput.addEventListener('input', onChange);
   }
 
+  function autoResizeTextarea(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   function addContentRow(value = '') {
     const id = nextId();
     const row = document.createElement('div');
     row.className = 'repeat-row content-row';
     row.dataset.id = id;
 
-    const input = document.createElement('input');
-    input.type = 'text';
+    const input = document.createElement('textarea');
     input.className = 'content-text';
-    input.placeholder = '輸入討論重點 Discussion point';
+    input.rows = 1;
+    input.placeholder = '輸入討論重點，可換行 Discussion point (line breaks allowed)';
     input.value = value;
 
     const removeBtn = document.createElement('button');
@@ -183,7 +188,11 @@
     row.appendChild(removeBtn);
     contentList.appendChild(row);
 
-    input.addEventListener('input', onChange);
+    input.addEventListener('input', () => {
+      autoResizeTextarea(input);
+      onChange();
+    });
+    requestAnimationFrame(() => autoResizeTextarea(input));
   }
 
   function refreshTodoOwnerOptions() {
@@ -383,9 +392,9 @@
       const table = document.createElement('table');
       table.className = 'pdf-attendee-table';
       table.innerHTML = `
-        <thead><tr><th style="width:30%">${t.thRole}</th><th style="width:35%">${t.thName}</th><th>${t.thCompany}</th></tr></thead>
+        <thead><tr><th style="width:35%">${t.thCompany}</th><th style="width:30%">${t.thRole}</th><th>${t.thName}</th></tr></thead>
         <tbody>
-          ${data.attendees.map((a) => `<tr><td>${escapeHtml(roleLabel(a.role, lang)) || '-'}</td><td>${escapeHtml(a.name) || '-'}</td><td>${escapeHtml(a.company) || '-'}</td></tr>`).join('')}
+          ${data.attendees.map((a) => `<tr><td>${escapeHtml(a.company) || '-'}</td><td>${escapeHtml(roleLabel(a.role, lang)) || '-'}</td><td>${escapeHtml(a.name) || '-'}</td></tr>`).join('')}
         </tbody>
       `;
       return table;
