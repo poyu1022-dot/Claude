@@ -101,6 +101,16 @@
           </div>
           <p id="gen-status" class="gen-status"></p>
         </div>
+
+        <div class="generate-box">
+          <h3>複製到 Outlook 郵件 <span class="en">Copy for Outlook Email</span></h3>
+          <p class="hint" style="margin-top:-4px;">產生 Outlook 郵件可讀取的格式，複製後直接貼到 Outlook 新郵件中即可保留表格與排版。</p>
+          <div class="generate-buttons">
+            <button type="button" id="btn-copy-en" class="btn btn-secondary">🇬🇧 複製英文版<br><small>Copy for Outlook (English)</small></button>
+            <button type="button" id="btn-copy-zh" class="btn btn-secondary">🇹🇼 複製繁體中文版<br><small>Copy for Outlook (Traditional Chinese)</small></button>
+          </div>
+          <p id="copy-status" class="gen-status"></p>
+        </div>
       </div>
     </aside>
 
@@ -121,6 +131,17 @@
     <div class="confirm-actions">
       <button type="button" id="confirm-cancel" class="btn btn-ghost">取消 Cancel</button>
       <button type="button" id="confirm-ok" class="btn btn-danger">清除 Clear</button>
+    </div>
+  </div>
+</div>
+
+<div id="outlook-modal-overlay" class="confirm-overlay" hidden>
+  <div class="confirm-dialog outlook-dialog" role="alertdialog" aria-modal="true" aria-labelledby="outlook-modal-title">
+    <p id="outlook-modal-title" class="confirm-title">請手動複製以下內容 <span class="en">Copy the content below manually</span></p>
+    <p class="confirm-desc" id="outlook-modal-desc">您的瀏覽器未允許自動複製，內容已為您反白選取，請按 <strong>Ctrl+C</strong>（Mac 請按 <strong>Cmd+C</strong>）複製，然後貼到 Outlook 新郵件中。</p>
+    <div id="outlook-copy-target" class="outlook-copy-target" contenteditable="true"></div>
+    <div class="confirm-actions">
+      <button type="button" id="outlook-modal-close" class="btn btn-ghost">關閉 Close</button>
     </div>
   </div>
 </div>

@@ -92,6 +92,9 @@
   const genStatus = $('#gen-status');
   const pdfRoot = $('#pdf-render-root');
   const confirmOverlay = $('#confirm-overlay');
+  const copyStatus = $('#copy-status');
+  const outlookModalOverlay = $('#outlook-modal-overlay');
+  const outlookCopyTarget = $('#outlook-copy-target');
 
   let rowIdCounter = 0;
   const nextId = () => `row-${++rowIdCounter}`;
@@ -462,6 +465,225 @@
     return (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  function nl2br(s) {
+    return escapeHtml(s).replace(/\n/g, '<br>');
+  }
+
+  // ---------------------------------------------------------------------
+  // Outlook-compatible email HTML
+  //
+  // Outlook desktop renders HTML email with Word's engine, not a browser
+  // engine: no CSS grid/flexbox, no external/`<style>`-block reliance
+  // worth trusting, no web fonts. So this builds a table-based layout
+  // with every style inline and a web-safe font stack — the same
+  // approach used industry-wide for HTML email templates.
+  // ---------------------------------------------------------------------
+
+  const EMAIL_COLORS = {
+    accent: '#2f5fe0',
+    accentSoft: '#eef2fe',
+    text: '#1c2333',
+    muted: '#4a5266',
+    border: '#e2e6f0',
+    tableHeadBg: '#f7f9fc',
+    faint: '#8a92a6',
+    footer: '#9aa1b3',
+  };
+
+  function emailFontStack(lang) {
+    return lang === 'zh'
+      ? "'Microsoft JhengHei', 'PMingLiU', Calibri, Arial, sans-serif"
+      : "Calibri, Arial, 'Microsoft JhengHei', sans-serif";
+  }
+
+  function buildEmailHtml(data, lang) {
+    const t = TEXT[lang];
+    const c = EMAIL_COLORS;
+    const font = emailFontStack(lang);
+    const dateStr = formatDate(data.date, lang);
+    const subjectStr = escapeHtml(data.subject) || '-';
+
+    const thStyle = `padding:8px 10px;border-bottom:1px solid ${c.border};font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:${c.muted};font-weight:bold;background:${c.tableHeadBg};font-family:${font};`;
+    const tdStyle = `padding:8px 10px;border-bottom:1px solid ${c.border};font-size:13px;color:${c.text};font-family:${font};`;
+    const emptyStyle = `padding:8px 10px;font-size:12px;color:${c.faint};font-style:italic;font-family:${font};`;
+
+    const attendeeRows = data.attendees.length
+      ? data.attendees.map((a) => `
+        <tr>
+          <td style="${tdStyle}">${escapeHtml(a.company) || '-'}</td>
+          <td style="${tdStyle}">${escapeHtml(roleLabel(a.role, lang)) || '-'}</td>
+          <td style="${tdStyle}">${escapeHtml(a.name) || '-'}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="3" style="${emptyStyle}">${escapeHtml(t.noAttendees)}</td></tr>`;
+
+    const contentBlock = data.content.length
+      ? `<ul style="margin:0;padding-left:20px;font-family:${font};">${data.content.map((item) => `<li style="margin-bottom:6px;font-size:13px;color:${c.text};">${nl2br(item)}</li>`).join('')}</ul>`
+      : `<p style="margin:0;font-size:12px;color:${c.faint};font-style:italic;font-family:${font};">${escapeHtml(t.noContent)}</p>`;
+
+    const todoRows = data.todos.length
+      ? data.todos.map((item) => `
+        <tr>
+          <td style="${tdStyle}">${escapeHtml(item.task) || '-'}</td>
+          <td style="${tdStyle}">${escapeHtml(item.owner) || t.noOwner}</td>
+          <td style="${tdStyle}">${item.due ? escapeHtml(formatDate(item.due, lang)) : t.noDue}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="3" style="${emptyStyle}">${escapeHtml(t.noTodo)}</td></tr>`;
+
+    const notesBlock = data.notes
+      ? `<p style="margin:0;font-size:13px;color:${c.text};font-family:${font};">${nl2br(data.notes)}</p>`
+      : `<p style="margin:0;font-size:12px;color:${c.faint};font-style:italic;font-family:${font};">${escapeHtml(t.noNotes)}</p>`;
+
+    const sectionTitle = (label) => `<div style="font-size:12px;font-weight:bold;color:${c.accent};text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid ${c.border};padding-bottom:6px;margin:0 0 10px;font-family:${font};">${escapeHtml(label)}</div>`;
+    const infoBox = (label, value) => `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${c.accentSoft};margin-bottom:14px;">
+        <tr><td style="padding:12px 16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:${c.muted};font-weight:bold;font-family:${font};">${escapeHtml(label)}</div>
+          <div style="font-size:15px;font-weight:bold;color:${c.text};margin-top:3px;font-family:${font};">${value}</div>
+        </td></tr>
+      </table>`;
+
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5fa;"><tr><td align="center" style="padding:20px 10px;">
+<table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:640px;max-width:100%;background:#ffffff;border:1px solid ${c.border};font-family:${font};">
+<tr><td style="padding:24px 28px 14px;border-bottom:3px solid ${c.accent};">
+  <div style="font-size:22px;font-weight:bold;color:${c.text};font-family:${font};">${escapeHtml(t.docTitle)}</div>
+  <div style="font-size:13px;color:${c.muted};font-weight:bold;margin-top:6px;font-family:${font};">${dateStr} &middot; ${subjectStr}</div>
+</td></tr>
+<tr><td style="padding:16px 28px 0;">
+  ${infoBox(t.dateLabel, dateStr)}
+  ${infoBox(t.subjectLabel, subjectStr)}
+</td></tr>
+<tr><td style="padding:2px 28px 0;">
+  ${sectionTitle(t.attendeesTitle)}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px;">
+    <tr><th style="${thStyle}" align="left">${escapeHtml(t.thCompany)}</th><th style="${thStyle}" align="left">${escapeHtml(t.thRole)}</th><th style="${thStyle}" align="left">${escapeHtml(t.thName)}</th></tr>
+    ${attendeeRows}
+  </table>
+</td></tr>
+<tr><td style="padding:0 28px 0;">
+  ${sectionTitle(t.contentTitle)}
+  <div style="margin-bottom:20px;">${contentBlock}</div>
+</td></tr>
+<tr><td style="padding:0 28px 0;">
+  ${sectionTitle(t.todoTitle)}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px;">
+    <tr><th style="${thStyle}" align="left">${escapeHtml(t.thTask)}</th><th style="${thStyle}" align="left">${escapeHtml(t.thOwner)}</th><th style="${thStyle}" align="left">${escapeHtml(t.thDue)}</th></tr>
+    ${todoRows}
+  </table>
+</td></tr>
+<tr><td style="padding:0 28px 0;">
+  ${sectionTitle(t.notesTitle)}
+  <div style="margin-bottom:20px;">${notesBlock}</div>
+</td></tr>
+<tr><td style="padding:12px 28px 24px;border-top:1px solid ${c.border};">
+  <div style="font-size:10.5px;color:${c.footer};text-align:center;font-family:${font};">${escapeHtml(t.generatedBy)} &middot; ${new Date().toISOString().slice(0, 10)}</div>
+</td></tr>
+</table>
+</td></tr></table>`;
+  }
+
+  function buildEmailPlainText(data, lang) {
+    const t = TEXT[lang];
+    const lines = [];
+    lines.push(t.docTitle);
+    lines.push(`${t.dateLabel}: ${formatDate(data.date, lang)}`);
+    lines.push(`${t.subjectLabel}: ${data.subject || '-'}`);
+    lines.push('');
+    lines.push(t.attendeesTitle.toUpperCase());
+    if (data.attendees.length) {
+      data.attendees.forEach((a) => {
+        lines.push(`- ${a.company || '-'} | ${roleLabel(a.role, lang) || '-'} | ${a.name || '-'}`);
+      });
+    } else {
+      lines.push(t.noAttendees);
+    }
+    lines.push('');
+    lines.push(t.contentTitle.toUpperCase());
+    if (data.content.length) {
+      data.content.forEach((item) => lines.push(`- ${item}`));
+    } else {
+      lines.push(t.noContent);
+    }
+    lines.push('');
+    lines.push(t.todoTitle.toUpperCase());
+    if (data.todos.length) {
+      data.todos.forEach((item) => {
+        const owner = item.owner || t.noOwner;
+        const due = item.due ? formatDate(item.due, lang) : t.noDue;
+        lines.push(`- ${item.task} (${t.thOwner}: ${owner}, ${t.thDue}: ${due})`);
+      });
+    } else {
+      lines.push(t.noTodo);
+    }
+    lines.push('');
+    lines.push(t.notesTitle.toUpperCase());
+    lines.push(data.notes || t.noNotes);
+    return lines.join('\n');
+  }
+
+  function setCopyStatus(msg, kind) {
+    copyStatus.textContent = msg;
+    copyStatus.className = 'gen-status' + (kind ? ' ' + kind : '');
+  }
+
+  function openOutlookModal(html) {
+    outlookCopyTarget.innerHTML = html;
+    outlookModalOverlay.hidden = false;
+
+    const range = document.createRange();
+    range.selectNodeContents(outlookCopyTarget);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    outlookCopyTarget.focus();
+
+    let autoCopied = false;
+    try {
+      autoCopied = document.execCommand('copy');
+    } catch (e) {
+      autoCopied = false;
+    }
+
+    const desc = $('#outlook-modal-desc');
+    if (autoCopied) {
+      desc.innerHTML = '✔ 內容已複製到剪貼簿，可直接貼到 Outlook 新郵件中。 <span class="en">Copied to your clipboard — paste it into a new Outlook email.</span>';
+    } else {
+      desc.innerHTML = '您的瀏覽器未允許自動複製，內容已為您反白選取，請按 <strong>Ctrl+C</strong>（Mac 請按 <strong>Cmd+C</strong>）複製，然後貼到 Outlook 新郵件中。 <span class="en">Please press Ctrl+C (Cmd+C on Mac) to copy the pre-selected content, then paste it into a new Outlook email.</span>';
+    }
+  }
+
+  function closeOutlookModal() {
+    outlookModalOverlay.hidden = true;
+    outlookCopyTarget.innerHTML = '';
+  }
+
+  async function copyForOutlook(lang) {
+    const data = collectData();
+    if (!data.date || !data.subject) {
+      setCopyStatus(lang === 'zh' ? '請先填寫會議日期與會議主旨。' : 'Please fill in the meeting date and subject first.', 'error');
+      return;
+    }
+
+    const html = buildEmailHtml(data, lang);
+    const text = buildEmailPlainText(data, lang);
+
+    if (navigator.clipboard && window.ClipboardItem) {
+      try {
+        const item = new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([text], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([item]);
+        setCopyStatus(lang === 'zh' ? '✔ 已複製，請直接貼到 Outlook 新郵件中。' : '✔ Copied — paste it into a new Outlook email.', 'success');
+        return;
+      } catch (err) {
+        // Fall through to the manual-copy modal below.
+      }
+    }
+
+    setCopyStatus('');
+    openOutlookModal(html);
+  }
+
   // ---------------------------------------------------------------------
   // PDF generation
   // ---------------------------------------------------------------------
@@ -647,6 +869,16 @@
     });
     $('#btn-gen-en').addEventListener('click', () => generatePdf('en'));
     $('#btn-gen-zh').addEventListener('click', () => generatePdf('zh'));
+
+    $('#btn-copy-en').addEventListener('click', () => copyForOutlook('en'));
+    $('#btn-copy-zh').addEventListener('click', () => copyForOutlook('zh'));
+    $('#outlook-modal-close').addEventListener('click', closeOutlookModal);
+    outlookModalOverlay.addEventListener('click', (e) => {
+      if (e.target === outlookModalOverlay) closeOutlookModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !outlookModalOverlay.hidden) closeOutlookModal();
+    });
 
     [dateInput, subjectInput, notesInput].forEach((el) => el.addEventListener('input', onChange));
 
