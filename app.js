@@ -33,6 +33,7 @@
       attendeesTitle: 'Attendees',
       thRole: 'Role',
       thName: 'Name',
+      thCompany: 'Company',
       contentTitle: 'Meeting Content',
       todoTitle: 'Action Items',
       thTask: 'Task',
@@ -54,6 +55,7 @@
       attendeesTitle: '與會人員',
       thRole: '職務',
       thName: '姓名',
+      thCompany: '公司名稱',
       contentTitle: '會議內容',
       todoTitle: '待辦事項',
       thTask: '事項',
@@ -128,6 +130,12 @@
     nameInput.placeholder = '姓名 Name';
     nameInput.value = data.name || '';
 
+    const companyInput = document.createElement('input');
+    companyInput.type = 'text';
+    companyInput.className = 'attendee-company';
+    companyInput.placeholder = '公司名稱 Company (選填 optional)';
+    companyInput.value = data.company || '';
+
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'row-remove';
@@ -140,11 +148,13 @@
 
     row.appendChild(roleSelect);
     row.appendChild(nameInput);
+    row.appendChild(companyInput);
     row.appendChild(removeBtn);
     attendeeList.appendChild(row);
 
     roleSelect.addEventListener('change', onChange);
     nameInput.addEventListener('input', onChange);
+    companyInput.addEventListener('input', onChange);
   }
 
   function addContentRow(value = '') {
@@ -254,7 +264,8 @@
     const attendees = Array.from(attendeeList.querySelectorAll('.attendee-row')).map((row) => ({
       role: row.querySelector('.attendee-role').value,
       name: row.querySelector('.attendee-name').value.trim(),
-    })).filter((a) => a.role || a.name);
+      company: row.querySelector('.attendee-company').value.trim(),
+    })).filter((a) => a.role || a.name || a.company);
 
     const content = Array.from(contentList.querySelectorAll('.content-text'))
       .map((el) => el.value.trim())
@@ -309,7 +320,7 @@
 
     html += '<h4>與會人員 Attendees</h4>';
     if (data.attendees.length) {
-      html += data.attendees.map((a) => `<span class="pv-chip">${esc(roleLabel(a.role, 'zh'))}${a.name ? ' · ' + esc(a.name) : ''}</span>`).join('');
+      html += data.attendees.map((a) => `<span class="pv-chip">${esc(roleLabel(a.role, 'zh'))}${a.name ? ' · ' + esc(a.name) : ''}${a.company ? ' · ' + esc(a.company) : ''}</span>`).join('');
     } else {
       html += '<p class="preview-empty">尚未新增</p>';
     }
@@ -344,9 +355,18 @@
     header.className = 'pdf-header';
     header.innerHTML = `
       <p class="pdf-doc-title">${t.docTitle}</p>
-      <div class="pdf-doc-date">${t.dateLabel}<br>${formatDate(data.date, lang)}</div>
+      <p class="pdf-doc-title-meta">${formatDate(data.date, lang)} · ${escapeHtml(data.subject) || '-'}</p>
     `;
     page.appendChild(header);
+
+    // Date
+    const dateBox = document.createElement('div');
+    dateBox.className = 'pdf-subject-box';
+    dateBox.innerHTML = `
+      <p class="pdf-label">${t.dateLabel}</p>
+      <p class="pdf-subject-text">${formatDate(data.date, lang)}</p>
+    `;
+    page.appendChild(dateBox);
 
     // Subject
     const subjectBox = document.createElement('div');
@@ -363,9 +383,9 @@
       const table = document.createElement('table');
       table.className = 'pdf-attendee-table';
       table.innerHTML = `
-        <thead><tr><th style="width:40%">${t.thRole}</th><th>${t.thName}</th></tr></thead>
+        <thead><tr><th style="width:30%">${t.thRole}</th><th style="width:35%">${t.thName}</th><th>${t.thCompany}</th></tr></thead>
         <tbody>
-          ${data.attendees.map((a) => `<tr><td>${escapeHtml(roleLabel(a.role, lang)) || '-'}</td><td>${escapeHtml(a.name) || '-'}</td></tr>`).join('')}
+          ${data.attendees.map((a) => `<tr><td>${escapeHtml(roleLabel(a.role, lang)) || '-'}</td><td>${escapeHtml(a.name) || '-'}</td><td>${escapeHtml(a.company) || '-'}</td></tr>`).join('')}
         </tbody>
       `;
       return table;
