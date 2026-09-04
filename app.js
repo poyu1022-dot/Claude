@@ -442,6 +442,32 @@
     genStatus.className = 'gen-status' + (kind ? ' ' + kind : '');
   }
 
+  // When this page runs inside the Claude Artifact viewer, script-triggered
+  // downloads (the <a download> link html2pdf.js's own .save() creates) are
+  // blocked by the sandbox. Use the platform's downloads capability instead
+  // when it's available; otherwise fall back to a normal browser download.
+  let downloadsCapabilityPromise = null;
+  function getDownloadsCapability() {
+    if (typeof window.claude === 'undefined' || typeof window.claude.use !== 'function') {
+      return Promise.resolve(null);
+    }
+    if (!downloadsCapabilityPromise) {
+      downloadsCapabilityPromise = window.claude.use('downloads').catch(() => null);
+    }
+    return downloadsCapabilityPromise;
+  }
+
+  function triggerBrowserDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function generatePdf(lang) {
     const data = collectData();
 
@@ -481,8 +507,24 @@
         pagebreak: { mode: ['css', 'legacy'] },
       };
 
-      await window.html2pdf().set(opt).from(page).save();
-      setStatus(lang === 'zh' ? '✔ PDF 已產生並下載完成。' : '✔ PDF generated and downloaded.', 'success');
+      const pdfBlob = await window.html2pdf().set(opt).from(page).outputPdf('blob');
+
+      const downloadsApi = await getDownloadsCapability();
+      if (downloadsApi) {
+        try {
+          await downloadsApi.save({ filename, data: pdfBlob });
+          setStatus(lang === 'zh' ? '✔ PDF 已產生，請確認儲存。' : '✔ PDF generated — confirm the save prompt.', 'success');
+        } catch (err) {
+          if (err && err.code === 'declined') {
+            setStatus(lang === 'zh' ? '已取消儲存。' : 'Save cancelled.', '');
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        triggerBrowserDownload(pdfBlob, filename);
+        setStatus(lang === 'zh' ? '✔ PDF 已產生並下載完成。' : '✔ PDF generated and downloaded.', 'success');
+      }
     } catch (err) {
       console.error(err);
       setStatus(lang === 'zh' ? '產生 PDF 時發生錯誤，請再試一次。' : 'Something went wrong generating the PDF. Please try again.', 'error');
