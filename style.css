@@ -286,7 +286,7 @@ textarea { resize: vertical; }
 
 /* Offscreen PDF render root */
 #pdf-render-root {
-  position: fixed;
+  position: absolute;
   left: -10000px;
   top: 0;
   width: 794px; /* A4 @ 96dpi */

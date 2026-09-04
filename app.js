@@ -462,6 +462,10 @@
         await document.fonts.ready;
       }
 
+      // Reset scroll before capture: html2canvas can miscompute the render
+      // area (blank space + truncated content) if the page is scrolled.
+      window.scrollTo(0, 0);
+
       const filenameDate = data.date || 'undated';
       const safeSubject = (data.subject || 'meeting').replace(/[^\w一-鿿-]+/g, '_').slice(0, 40);
       const suffix = lang === 'zh' ? 'ZH' : 'EN';
@@ -471,7 +475,7 @@
         margin: 0,
         filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'] },
       };
