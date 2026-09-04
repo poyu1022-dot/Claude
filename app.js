@@ -89,6 +89,7 @@
   const previewBox = $('#preview-box');
   const genStatus = $('#gen-status');
   const pdfRoot = $('#pdf-render-root');
+  const confirmOverlay = $('#confirm-overlay');
 
   let rowIdCounter = 0;
   const nextId = () => `row-${++rowIdCounter}`;
@@ -529,8 +530,16 @@
     return true;
   }
 
+  function openClearConfirm() {
+    confirmOverlay.hidden = false;
+  }
+
+  function closeClearConfirm() {
+    confirmOverlay.hidden = true;
+  }
+
   function clearForm() {
-    if (!confirm('確定要清除所有已填寫的內容嗎？此動作無法復原。\nClear all entered data? This cannot be undone.')) return;
+    closeClearConfirm();
     dateInput.value = '';
     subjectInput.value = '';
     notesInput.value = '';
@@ -556,7 +565,15 @@
     $('#btn-add-attendee').addEventListener('click', () => { addAttendeeRow(); onChange(); });
     $('#btn-add-content').addEventListener('click', () => { addContentRow(); onChange(); });
     $('#btn-add-todo').addEventListener('click', () => { addTodoRow(); onChange(); });
-    $('#btn-clear').addEventListener('click', clearForm);
+    $('#btn-clear').addEventListener('click', openClearConfirm);
+    $('#confirm-cancel').addEventListener('click', closeClearConfirm);
+    $('#confirm-ok').addEventListener('click', clearForm);
+    confirmOverlay.addEventListener('click', (e) => {
+      if (e.target === confirmOverlay) closeClearConfirm();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !confirmOverlay.hidden) closeClearConfirm();
+    });
     $('#btn-gen-en').addEventListener('click', () => generatePdf('en'));
     $('#btn-gen-zh').addEventListener('click', () => generatePdf('zh'));
 

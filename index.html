@@ -114,6 +114,17 @@
 <!-- Offscreen container used to render the PDF page before export -->
 <div id="pdf-render-root" aria-hidden="true"></div>
 
+<div id="confirm-overlay" class="confirm-overlay" hidden>
+  <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <p id="confirm-title" class="confirm-title">確定要清除所有已填寫的內容嗎？<br><span class="en">Clear all entered data?</span></p>
+    <p class="confirm-desc">此動作無法復原。 <span class="en">This cannot be undone.</span></p>
+    <div class="confirm-actions">
+      <button type="button" id="confirm-cancel" class="btn btn-ghost">取消 Cancel</button>
+      <button type="button" id="confirm-ok" class="btn btn-danger">清除 Clear</button>
+    </div>
+  </div>
+</div>
+
 <script src="vendor/html2pdf.bundle.min.js"></script>
 <script src="app.js"></script>
 </body>
