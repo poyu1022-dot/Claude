@@ -89,8 +89,6 @@
   const todoList = $('#todo-list');
 
   const previewBox = $('#preview-box');
-  const genStatus = $('#gen-status');
-  const pdfRoot = $('#pdf-render-root');
   const confirmOverlay = $('#confirm-overlay');
   const copyStatus = $('#copy-status');
   const outlookModalOverlay = $('#outlook-modal-overlay');
@@ -353,114 +351,6 @@
     previewBox.innerHTML = html;
   }
 
-  // ---------------------------------------------------------------------
-  // PDF template rendering
-  // ---------------------------------------------------------------------
-
-  function buildPdfPage(data, lang) {
-    const t = TEXT[lang];
-    const page = document.createElement('div');
-    page.className = `pdf-page lang-${lang}`;
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'pdf-header';
-    header.innerHTML = `
-      <p class="pdf-doc-title">${t.docTitle}</p>
-      <p class="pdf-doc-title-meta">${formatDate(data.date, lang)} · ${escapeHtml(data.subject) || '-'}</p>
-    `;
-    page.appendChild(header);
-
-    // Date
-    const dateBox = document.createElement('div');
-    dateBox.className = 'pdf-subject-box';
-    dateBox.innerHTML = `
-      <p class="pdf-label">${t.dateLabel}</p>
-      <p class="pdf-subject-text">${formatDate(data.date, lang)}</p>
-    `;
-    page.appendChild(dateBox);
-
-    // Subject
-    const subjectBox = document.createElement('div');
-    subjectBox.className = 'pdf-subject-box';
-    subjectBox.innerHTML = `
-      <p class="pdf-label">${t.subjectLabel}</p>
-      <p class="pdf-subject-text">${escapeHtml(data.subject) || '-'}</p>
-    `;
-    page.appendChild(subjectBox);
-
-    // Attendees
-    page.appendChild(buildSection(t.attendeesTitle, () => {
-      if (!data.attendees.length) return emptyNote(t.noAttendees);
-      const table = document.createElement('table');
-      table.className = 'pdf-attendee-table';
-      table.innerHTML = `
-        <thead><tr><th style="width:35%">${t.thCompany}</th><th style="width:30%">${t.thRole}</th><th>${t.thName}</th></tr></thead>
-        <tbody>
-          ${data.attendees.map((a) => `<tr><td>${escapeHtml(a.company) || '-'}</td><td>${escapeHtml(roleLabel(a.role, lang)) || '-'}</td><td>${escapeHtml(a.name) || '-'}</td></tr>`).join('')}
-        </tbody>
-      `;
-      return table;
-    }));
-
-    // Content
-    page.appendChild(buildSection(t.contentTitle, () => {
-      if (!data.content.length) return emptyNote(t.noContent);
-      const ul = document.createElement('ul');
-      ul.className = 'pdf-bullet-list';
-      ul.innerHTML = data.content.map((c) => `<li>${escapeHtml(c)}</li>`).join('');
-      return ul;
-    }));
-
-    // Action items
-    page.appendChild(buildSection(t.todoTitle, () => {
-      if (!data.todos.length) return emptyNote(t.noTodo);
-      const table = document.createElement('table');
-      table.className = 'pdf-todo-table';
-      table.innerHTML = `
-        <thead><tr><th style="width:50%">${t.thTask}</th><th style="width:25%">${t.thOwner}</th><th style="width:25%">${t.thDue}</th></tr></thead>
-        <tbody>
-          ${data.todos.map((tItem) => `<tr><td>${escapeHtml(tItem.task) || '-'}</td><td>${escapeHtml(tItem.owner) || t.noOwner}</td><td>${tItem.due ? escapeHtml(formatDate(tItem.due, lang)) : t.noDue}</td></tr>`).join('')}
-        </tbody>
-      `;
-      return table;
-    }));
-
-    // Notes
-    page.appendChild(buildSection(t.notesTitle, () => {
-      if (!data.notes) return emptyNote(t.noNotes);
-      const p = document.createElement('p');
-      p.className = 'pdf-notes-text';
-      p.textContent = data.notes;
-      return p;
-    }));
-
-    const footer = document.createElement('div');
-    footer.className = 'pdf-footer';
-    footer.textContent = `${t.generatedBy} · ${new Date().toISOString().slice(0, 10)}`;
-    page.appendChild(footer);
-
-    return page;
-  }
-
-  function buildSection(title, contentBuilder) {
-    const section = document.createElement('div');
-    section.className = 'pdf-section';
-    const h = document.createElement('p');
-    h.className = 'pdf-section-title';
-    h.textContent = title;
-    section.appendChild(h);
-    section.appendChild(contentBuilder());
-    return section;
-  }
-
-  function emptyNote(text) {
-    const p = document.createElement('p');
-    p.className = 'pdf-empty-note';
-    p.textContent = text;
-    return p;
-  }
-
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
@@ -685,107 +575,6 @@
   }
 
   // ---------------------------------------------------------------------
-  // PDF generation
-  // ---------------------------------------------------------------------
-
-  function setStatus(msg, kind) {
-    genStatus.textContent = msg;
-    genStatus.className = 'gen-status' + (kind ? ' ' + kind : '');
-  }
-
-  // When this page runs inside the Claude Artifact viewer, script-triggered
-  // downloads (the <a download> link html2pdf.js's own .save() creates) are
-  // blocked by the sandbox. Use the platform's downloads capability instead
-  // when it's available; otherwise fall back to a normal browser download.
-  let downloadsCapabilityPromise = null;
-  function getDownloadsCapability() {
-    if (typeof window.claude === 'undefined' || typeof window.claude.use !== 'function') {
-      return Promise.resolve(null);
-    }
-    if (!downloadsCapabilityPromise) {
-      downloadsCapabilityPromise = window.claude.use('downloads').catch(() => null);
-    }
-    return downloadsCapabilityPromise;
-  }
-
-  function triggerBrowserDownload(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
-  async function generatePdf(lang) {
-    const data = collectData();
-
-    if (!data.date || !data.subject) {
-      setStatus(lang === 'zh' ? '請先填寫會議日期與會議主旨。' : 'Please fill in the meeting date and subject first.', 'error');
-      return;
-    }
-
-    const buttons = [$('#btn-gen-en'), $('#btn-gen-zh')];
-    buttons.forEach((b) => (b.disabled = true));
-    setStatus(lang === 'zh' ? '正在產生 PDF，請稍候…' : 'Generating PDF, please wait…');
-
-    try {
-      pdfRoot.innerHTML = '';
-      const page = buildPdfPage(data, lang);
-      pdfRoot.appendChild(page);
-
-      if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-      }
-
-      // Reset scroll before capture: html2canvas can miscompute the render
-      // area (blank space + truncated content) if the page is scrolled.
-      window.scrollTo(0, 0);
-
-      const filenameDate = data.date || 'undated';
-      const safeSubject = (data.subject || 'meeting').replace(/[^\w一-鿿-]+/g, '_').slice(0, 40);
-      const suffix = lang === 'zh' ? 'ZH' : 'EN';
-      const filename = `MeetingMinutes_${filenameDate}_${safeSubject}_${suffix}.pdf`;
-
-      const opt = {
-        margin: 0,
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] },
-      };
-
-      const pdfBlob = await window.html2pdf().set(opt).from(page).outputPdf('blob');
-
-      const downloadsApi = await getDownloadsCapability();
-      if (downloadsApi) {
-        try {
-          await downloadsApi.save({ filename, data: pdfBlob });
-          setStatus(lang === 'zh' ? '✔ PDF 已產生，請確認儲存。' : '✔ PDF generated — confirm the save prompt.', 'success');
-        } catch (err) {
-          if (err && err.code === 'declined') {
-            setStatus(lang === 'zh' ? '已取消儲存。' : 'Save cancelled.', '');
-          } else {
-            throw err;
-          }
-        }
-      } else {
-        triggerBrowserDownload(pdfBlob, filename);
-        setStatus(lang === 'zh' ? '✔ PDF 已產生並下載完成。' : '✔ PDF generated and downloaded.', 'success');
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus(lang === 'zh' ? '產生 PDF 時發生錯誤，請再試一次。' : 'Something went wrong generating the PDF. Please try again.', 'error');
-    } finally {
-      buttons.forEach((b) => (b.disabled = false));
-      pdfRoot.innerHTML = '';
-    }
-  }
-
-  // ---------------------------------------------------------------------
   // Persistence (localStorage draft)
   // ---------------------------------------------------------------------
 
@@ -840,7 +629,7 @@
     contentList.innerHTML = '';
     todoList.innerHTML = '';
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
-    setStatus('');
+    setCopyStatus('');
     onChange();
   }
 
@@ -867,9 +656,6 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !confirmOverlay.hidden) closeClearConfirm();
     });
-    $('#btn-gen-en').addEventListener('click', () => generatePdf('en'));
-    $('#btn-gen-zh').addEventListener('click', () => generatePdf('zh'));
-
     $('#btn-copy-en').addEventListener('click', () => copyForOutlook('en'));
     $('#btn-copy-zh').addEventListener('click', () => copyForOutlook('zh'));
     $('#outlook-modal-close').addEventListener('click', closeOutlookModal);

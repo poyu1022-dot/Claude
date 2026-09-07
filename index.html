@@ -21,7 +21,7 @@
       <span class="brand-mark">📝</span>
       <div class="brand-text">
         <h1>會議記錄產生器 <span class="en">Meeting Minutes Generator</span></h1>
-        <p class="subtitle">點選欄位、選擇選項，快速產生英文 / 繁體中文版會議記錄 PDF</p>
+        <p class="subtitle">點選欄位、選擇選項，快速產生英文 / 繁體中文版會議記錄，並直接複製到 Outlook 郵件</p>
       </div>
     </div>
     <div class="header-actions">
@@ -94,15 +94,6 @@
         </div>
 
         <div class="generate-box">
-          <h3>產生 PDF <span class="en">Generate PDF</span></h3>
-          <div class="generate-buttons">
-            <button type="button" id="btn-gen-en" class="btn btn-primary">🇬🇧 產生英文版 PDF<br><small>Generate English PDF</small></button>
-            <button type="button" id="btn-gen-zh" class="btn btn-primary">🇹🇼 產生繁體中文版 PDF<br><small>Generate Traditional Chinese PDF</small></button>
-          </div>
-          <p id="gen-status" class="gen-status"></p>
-        </div>
-
-        <div class="generate-box">
           <h3>複製到 Outlook 郵件 <span class="en">Copy for Outlook Email</span></h3>
           <p class="hint" style="margin-top:-4px;">產生 Outlook 郵件可讀取的格式，複製後直接貼到 Outlook 新郵件中即可保留表格與排版。</p>
           <div class="generate-buttons">
@@ -120,9 +111,6 @@
     <p>所有資料僅儲存在您的瀏覽器（localStorage），不會上傳至任何伺服器。 All data stays in your browser only — nothing is uploaded to any server.</p>
   </footer>
 </div>
-
-<!-- Offscreen container used to render the PDF page before export -->
-<div id="pdf-render-root" aria-hidden="true"></div>
 
 <div id="confirm-overlay" class="confirm-overlay" hidden>
   <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
@@ -146,7 +134,6 @@
   </div>
 </div>
 
-<script src="vendor/html2pdf.bundle.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
