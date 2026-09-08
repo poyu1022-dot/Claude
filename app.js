@@ -89,6 +89,8 @@
   const attendeeList = $('#attendee-list');
   const contentList = $('#content-list');
   const todoList = $('#todo-list');
+  const toggleTodoOwner = $('#toggle-todo-owner');
+  const toggleTodoDue = $('#toggle-todo-due');
 
   const previewBox = $('#preview-box');
   const confirmOverlay = $('#confirm-overlay');
@@ -295,8 +297,15 @@
       attendees,
       content,
       todos,
+      showTodoOwner: toggleTodoOwner.checked,
+      showTodoDue: toggleTodoDue.checked,
       notes: notesInput.value.trim(),
     };
+  }
+
+  function applyTodoFieldToggles() {
+    todoList.classList.toggle('hide-owner', !toggleTodoOwner.checked);
+    todoList.classList.toggle('hide-due', !toggleTodoDue.checked);
   }
 
   // ---------------------------------------------------------------------
@@ -344,7 +353,7 @@
 
     html += '<h4>待辦事項 Action Items</h4>';
     html += data.todos.length
-      ? '<ul>' + data.todos.map((t) => `<li>${esc(t.task)}${t.owner ? ' — ' + esc(t.owner) : ''}${t.due ? ' (' + esc(t.due) + ')' : ''}</li>`).join('') + '</ul>'
+      ? '<ul>' + data.todos.map((t) => `<li>${esc(t.task)}${data.showTodoOwner && t.owner ? ' — ' + esc(t.owner) : ''}${data.showTodoDue && t.due ? ' (' + esc(t.due) + ')' : ''}</li>`).join('') + '</ul>'
       : '<p class="preview-empty">尚未新增</p>';
 
     html += '<h4>其他補充 Notes</h4>';
@@ -412,14 +421,21 @@
       ? `<ul style="margin:0;padding-left:20px;font-family:${font};">${data.content.map((item) => `<li style="margin-bottom:6px;font-size:13px;color:${c.text};">${nl2br(item)}</li>`).join('')}</ul>`
       : `<p style="margin:0;font-size:12px;color:${c.faint};font-style:italic;font-family:${font};">${escapeHtml(t.noContent)}</p>`;
 
+    const todoColumns = [{ key: 'task', label: t.thTask }];
+    if (data.showTodoOwner) todoColumns.push({ key: 'owner', label: t.thOwner });
+    if (data.showTodoDue) todoColumns.push({ key: 'due', label: t.thDue });
+
+    const todoCell = (item, key) => {
+      if (key === 'task') return escapeHtml(item.task) || '-';
+      if (key === 'owner') return escapeHtml(item.owner) || t.noOwner;
+      return item.due ? escapeHtml(formatDate(item.due, lang)) : t.noDue;
+    };
+
+    const todoHeaderRow = `<tr>${todoColumns.map((col) => `<th style="${thStyle}" align="left">${escapeHtml(col.label)}</th>`).join('')}</tr>`;
+
     const todoRows = data.todos.length
-      ? data.todos.map((item) => `
-        <tr>
-          <td style="${tdStyle}">${escapeHtml(item.task) || '-'}</td>
-          <td style="${tdStyle}">${escapeHtml(item.owner) || t.noOwner}</td>
-          <td style="${tdStyle}">${item.due ? escapeHtml(formatDate(item.due, lang)) : t.noDue}</td>
-        </tr>`).join('')
-      : `<tr><td colspan="3" style="${emptyStyle}">${escapeHtml(t.noTodo)}</td></tr>`;
+      ? data.todos.map((item) => `<tr>${todoColumns.map((col) => `<td style="${tdStyle}">${todoCell(item, col.key)}</td>`).join('')}</tr>`).join('')
+      : `<tr><td colspan="${todoColumns.length}" style="${emptyStyle}">${escapeHtml(t.noTodo)}</td></tr>`;
 
     const notesBlock = data.notes
       ? `<p style="margin:0;font-size:13px;color:${c.text};font-family:${font};">${nl2br(data.notes)}</p>`
@@ -458,7 +474,7 @@
 <tr><td style="padding:0 28px 0;">
   ${sectionTitle(t.todoTitle)}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px;">
-    <tr><th style="${thStyle}" align="left">${escapeHtml(t.thTask)}</th><th style="${thStyle}" align="left">${escapeHtml(t.thOwner)}</th><th style="${thStyle}" align="left">${escapeHtml(t.thDue)}</th></tr>
+    ${todoHeaderRow}
     ${todoRows}
   </table>
 </td></tr>
@@ -499,9 +515,10 @@
     lines.push(t.todoTitle.toUpperCase());
     if (data.todos.length) {
       data.todos.forEach((item) => {
-        const owner = item.owner || t.noOwner;
-        const due = item.due ? formatDate(item.due, lang) : t.noDue;
-        lines.push(`- ${item.task} (${t.thOwner}: ${owner}, ${t.thDue}: ${due})`);
+        const parts = [];
+        if (data.showTodoOwner) parts.push(`${t.thOwner}: ${item.owner || t.noOwner}`);
+        if (data.showTodoDue) parts.push(`${t.thDue}: ${item.due ? formatDate(item.due, lang) : t.noDue}`);
+        lines.push(`- ${item.task}${parts.length ? ' (' + parts.join(', ') + ')' : ''}`);
       });
     } else {
       lines.push(t.noTodo);
@@ -606,6 +623,8 @@
     dateInput.value = data.date || '';
     subjectInput.value = data.subject || '';
     notesInput.value = data.notes || '';
+    toggleTodoOwner.checked = data.showTodoOwner !== false;
+    toggleTodoDue.checked = data.showTodoDue !== false;
 
     (data.attendees || []).forEach((a) => addAttendeeRow(a));
     (data.content || []).forEach((c) => addContentRow(c));
@@ -630,6 +649,9 @@
     attendeeList.innerHTML = '';
     contentList.innerHTML = '';
     todoList.innerHTML = '';
+    toggleTodoOwner.checked = true;
+    toggleTodoDue.checked = true;
+    applyTodoFieldToggles();
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
     setCopyStatus('');
     onChange();
@@ -640,6 +662,7 @@
   // ---------------------------------------------------------------------
 
   function onChange() {
+    applyTodoFieldToggles();
     refreshTodoOwnerOptions();
     renderPreview();
     scheduleSave();
@@ -649,6 +672,8 @@
     $('#btn-add-attendee').addEventListener('click', () => { addAttendeeRow(); onChange(); });
     $('#btn-add-content').addEventListener('click', () => { addContentRow(); onChange(); });
     $('#btn-add-todo').addEventListener('click', () => { addTodoRow(); onChange(); });
+    toggleTodoOwner.addEventListener('change', onChange);
+    toggleTodoDue.addEventListener('change', onChange);
     $('#btn-clear').addEventListener('click', openClearConfirm);
     $('#confirm-cancel').addEventListener('click', closeClearConfirm);
     $('#confirm-ok').addEventListener('click', clearForm);

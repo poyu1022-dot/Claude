@@ -71,6 +71,10 @@
       <section class="card">
         <h2><span class="step">5</span>待辦事項 <span class="en">Action Items / To-do</span></h2>
         <p class="hint">輸入待辦事項內容，並可從與會人員中選擇負責人與期限（選填）。</p>
+        <div class="todo-field-toggles">
+          <label class="toggle-check"><input type="checkbox" id="toggle-todo-owner" checked> 顯示負責人欄位 <span class="en">Show Owner field</span></label>
+          <label class="toggle-check"><input type="checkbox" id="toggle-todo-due" checked> 顯示期限欄位 <span class="en">Show Due Date field</span></label>
+        </div>
         <div id="todo-list" class="repeat-list"></div>
         <button type="button" id="btn-add-todo" class="btn btn-add">＋ 新增待辦事項 Add Action Item</button>
       </section>
