@@ -6,7 +6,9 @@
   // ---------------------------------------------------------------------
 
   const ROLES = [
+    { value: 'senior_director', en: 'Senior Director', zh: '資深總監' },
     { value: 'manager', en: 'Manager', zh: '經理' },
+    { value: 'assistant_manager', en: 'Assistant Manager', zh: '副理' },
     { value: 'pm', en: 'Project Manager', zh: '專案經理' },
     { value: 'sales', en: 'Sales', zh: '業務' },
     { value: 'sales_manager', en: 'Sales Manager', zh: '業務經理' },
