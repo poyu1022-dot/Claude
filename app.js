@@ -6,17 +6,21 @@
   // ---------------------------------------------------------------------
 
   const ROLES = [
+    { value: 'cto', en: 'CTO', zh: '技術長' },
     { value: 'senior_director', en: 'Senior Director', zh: '資深總監' },
     { value: 'manager', en: 'Manager', zh: '經理' },
     { value: 'assistant_manager', en: 'Assistant Manager', zh: '副理' },
     { value: 'pm', en: 'Project Manager', zh: '專案經理' },
+    { value: 'product_manager', en: 'Product Manager', zh: '產品經理' },
     { value: 'sales', en: 'Sales', zh: '業務' },
     { value: 'sales_manager', en: 'Sales Manager', zh: '業務經理' },
     { value: 'sw', en: 'SW Engineer', zh: '軟體工程師' },
     { value: 'hw', en: 'HW Engineer', zh: '硬體工程師' },
+    { value: 'fw', en: 'FW Engineer', zh: '韌體工程師' },
     { value: 'fpga', en: 'FPGA Engineer', zh: 'FPGA工程師' },
     { value: 'fae', en: 'FAE', zh: '現場應用工程師' },
     { value: 'avnet_dst', en: 'Avnet Design Service Team', zh: 'Avnet Design Service Team' },
+    { value: 'purchase', en: 'Purchase', zh: '採購' },
     { value: 'customer', en: 'Customer', zh: '客戶' },
     { value: 'other', en: 'Other', zh: '其他' },
   ];
